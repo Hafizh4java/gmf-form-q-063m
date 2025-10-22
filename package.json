@@ -1,0 +1,17 @@
+{
+  "name": "gmf-form-vercel",
+  "version": "1.0.0",
+  "description": "GMF Q-063M online form - Vercel serverless version",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "vercel-build": "echo ready"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "formidable": "^3.5.1",
+    "nodemailer": "^7.0.9",
+    "pdf-lib": "^1.17.1"
+  }
+}

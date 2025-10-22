@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GMF Q-063M - Online Request</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-3xl bg-white p-6 rounded-md shadow">
+      <img
+        src="logo-gmf.png"
+        alt="GMF Logo"
+        class="mx-auto w-[400px] h-auto mb-10"
+      />
+      <hr
+        class="my-6 border-0 h-1 bg-gradient-to-r from-blue-500 via-sky-400 to-teal-300 rounded-full"
+      />
+      <h1 class="text-3xl font-semibold mb-5 text-center">FORM GMF Q-063M</h1>
+
+      <div id="guidance" class="mb-4">
+        <label class="block font-medium mb-1">Petunjuk Pengisian</label>
+        <div id="guidancePreview" class="border rounded p-2">
+          <img
+            src="petunjuk.jpg"
+            alt="Petunjuk Pengisian"
+            class="max-w-full rounded-lg shadow"
+          />
+        </div>
+      </div>
+
+      <form
+        id="gmfForm"
+        action="/api/submit"
+        method="POST"
+        class="space-y-7"
+        enctype="multipart/form-data"
+      >
+        <div>
+          <label class="font-medium block">Request</label>
+          <div class="mt-2 flex flex-col space-y-4">
+            <label
+              ><input
+                type="radio"
+                name="requestChoice"
+                value="initial-stamp"
+                required
+              />
+              Initial Stamp</label
+            >
+            <label
+              ><input type="radio" name="requestChoice" value="initial-coc" />
+              Initial C of C</label
+            >
+            <label
+              ><input type="radio" name="requestChoice" value="renewal-coc" />
+              Renewal C of C</label
+            >
+            <label
+              ><input type="radio" name="requestChoice" value="change-rating" />
+              Change Rating/Scope/Stamp</label
+            >
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="font-medium">Name</label>
+            <input
+              name="name"
+              type="text"
+              required
+              class="w-full border p-2 rounded"
+            />
+          </div>
+          <div>
+            <label class="font-medium">ID</label>
+            <input
+              name="id"
+              type="text"
+              required
+              class="w-full border p-2 rounded"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="font-medium">Unit</label>
+            <input
+              name="unit"
+              type="text"
+              required
+              class="w-full border p-2 rounded"
+            />
+          </div>
+          <div>
+            <label class="font-medium">Job Title</label>
+            <input
+              name="jobTitle"
+              type="text"
+              required
+              class="w-full border p-2 rounded"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="font-medium"
+            >Specify additional information (if required)</label
+          >
+          <textarea
+            name="additionalInfo"
+            class="w-full border p-2 rounded"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="mt-4">
+          <label class="font-medium block mb-2">
+            Attach File: License, CV, Authorization Letter (if any)
+          </label>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="license"
+                >Upload License</label
+              >
+              <input
+                id="license"
+                name="license"
+                type="file"
+                class="block w-full border rounded p-1"
+                required
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1" for="cv"
+                >Upload CV</label
+              >
+              <input
+                id="cv"
+                name="cv"
+                type="file"
+                class="block w-full border rounded p-1"
+                required
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1" for="authLetter"
+                >Upload Authorization Letter (if any)</label
+              >
+              <input
+                id="authLetter"
+                name="authLetter"
+                type="file"
+                class="block w-full border rounded p-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <label class="text-black-800 font-semi-bold text-lg mb-2"
+            ><strong>Division Head</strong></label
+          >
+
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              align-items: center;
+              margin-bottom: 20px;
+            "
+          >
+            <div style="flex: 1">
+              <label>Name</label>
+              <input
+                type="text"
+                name="divisionHeadName"
+                class="form-control border grid w-2/3 p-1 rounded"
+                required
+              />
+            </div>
+            <div style="width: 250px">
+              <label>Tanggal</label>
+              <input
+                type="date"
+                name="divisionHeadDate"
+                class="form-control border grid w-2/3 p-1 rounded"
+                required
+              />
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px">
+            <label>Upload Tanda Tangan</label>
+            <input
+              type="file"
+              name="divisionHeadSign"
+              accept="image/*"
+              class="form-control border grid w-auto p-1 rounded"
+              required
+            />
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="section">
+          <label class="text-black-800 font-semi-bold text-lg mb-2"
+            ><strong>User</strong></label
+          >
+
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              align-items: center;
+              margin-bottom: 20px;
+            "
+          >
+            <div style="flex: 1">
+              <label>Name</label>
+              <input
+                type="text"
+                name="userName"
+                class="form-control border grid w-2/3 p-1 rounded"
+                required
+              />
+            </div>
+            <div style="width: 250px">
+              <label>Tanggal</label>
+              <input
+                type="date"
+                name="userDate"
+                class="form-control border grid w-2/3 p-1 rounded"
+                required
+              />
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px">
+            <label>Tanda Tangan</label>
+            <input
+              type="file"
+              name="userSign"
+              accept="image/*"
+              class="form-control border grid w-auto p-1 rounded"
+              required
+            />
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="section">
+          <label class="text-black-800 font-semi-bold text-lg mb-2"
+            ><strong>Quality Assurance</strong></label
+          >
+
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              align-items: center;
+              margin-bottom: 20px;
+            "
+          >
+            <div style="flex: 1">
+              <label>Name</label>
+              <input
+                type="text"
+                name="qaName"
+                class="form-control border grid w-2/3 p-1 rounded"
+                required
+              />
+            </div>
+            <div style="width: 250px">
+              <label>Tanggal</label>
+              <input
+                type="date"
+                name="qaDate"
+                class="form-control border grid w-2/3 p-1 rounded"
+                required
+              />
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px">
+            <label>Tanda Tangan</label>
+            <input
+              type="file"
+              name="qaSign"
+              accept="image/*"
+              class="form-control border grid w-auto p-1 rounded"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="font-medium"
+            >Your Email (will receive generated PDF)</label
+          >
+          <input
+            name="email"
+            type="email"
+            required
+            class="mt-1 w-full border rounded p-2"
+          />
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            type="submit"
+            class="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Submit
+          </button>
+          <div id="status" class="text-sm"></div>
+        </div>
+      </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+      const form = document.getElementById("gmfForm");
+
+      form.addEventListener("submit", function (event) {
+        event.preventDefault(); // tahan dulu submit
+
+        Swal.fire({
+          title: "Apakah semua dokumen sudah benar?",
+          text: "Pastikan semua file dan data sudah lengkap sebelum dikirim.",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Ya, kirim",
+          cancelButtonText: "Cek lagi",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            form.submit(); // kirim form kalau user klik "Ya, kirim"
+          }
+        });
+      });
+    </script>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

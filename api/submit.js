@@ -172,7 +172,7 @@ export default async function handler(req, res) {
       });
 
       await transporter.sendMail({
-        from: `"GMF Form Q063M" <no-reply@brevo.com>`,
+        from: `"GMF Form Q063M" <minddjango@gmail.com>`,
         to: email,
         subject: `Your GMF Q-063M Submission - ${name}`,
         text: `Dear ${name},\n\nThank you for submitting your form.\n\nRegards,\nGMF AeroAsia`,

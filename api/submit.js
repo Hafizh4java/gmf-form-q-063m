@@ -1,12 +1,12 @@
-// IMPORT & SETUP (pakai CommonJS)
-const nodemailer = require("nodemailer");
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const { PDFDocument } = require("pdf-lib");
-const formidable = require("formidable");
-const dotenv = require("dotenv");
-const brevo = require("@getbrevo/brevo");
+// IMPORT & SETUP (pakai ES Module)
+import nodemailer from "nodemailer";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { PDFDocument } from "pdf-lib";
+import formidable from "formidable";
+import dotenv from "dotenv";
+import * as brevo from "@getbrevo/brevo";
 
 // Load environment variables
 dotenv.config();
@@ -22,7 +22,13 @@ if (process.env.BREVO_API_KEY) {
 console.log("ENV SMTP HOST:", process.env.SMTP_HOST);
 
 // HANDLER API UTAMA
-module.exports = async (req, res) => {
+export const config = {
+  api: {
+    bodyParser: false, // penting untuk formidable
+  },
+};
+
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -202,4 +208,4 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: String(err) });
     }
   });
-};
+}

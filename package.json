@@ -8,6 +8,7 @@
     "vercel-build": "echo ready"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "dotenv": "^16.4.5",
     "express": "^5.1.0",
     "formidable": "^3.5.1",

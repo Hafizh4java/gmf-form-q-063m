@@ -5,26 +5,21 @@ import path from "path";
 import os from "os";
 import { PDFDocument } from "pdf-lib";
 import formidable from "formidable";
-import dotenv from "dotenv";
-import * as brevo from "@getbrevo/brevo";
+import Brevo from "@getbrevo/brevo";
 
-// Load environment variables
-dotenv.config();
+// SETUP BREVO
+const apiInstance = new Brevo.TransactionalEmailsApi();
+apiInstance.authentications.apiKey.apiKey = process.env.BREVO_API_KEY;
 
-// Set API Key Brevo
-if (process.env.BREVO_API_KEY) {
-  brevo.setApiKey(process.env.BREVO_API_KEY);
-} else {
-  console.warn("⚠️ BREVO_API_KEY tidak ditemukan di environment!");
-}
+console.log("✅ Brevo API Key loaded successfully");
 
 // LOG ENVIRONMENT
 console.log("ENV SMTP HOST:", process.env.SMTP_HOST);
 
-// HANDLER API UTAMA
+// HANDLER UTAMA
 export const config = {
   api: {
-    bodyParser: false, // penting untuk formidable
+    bodyParser: false,
   },
 };
 
@@ -44,7 +39,7 @@ export default async function handler(req, res) {
     try {
       console.log("✅ Form parsed successfully:", fields);
 
-      // Ambil semua field dari form
+      // AMBIL FIELD FORM
       const requestChoice = fields.requestChoice?.[0] || "";
       const name = fields.name?.[0] || "";
       const id = fields.id?.[0] || "";
@@ -60,22 +55,15 @@ export default async function handler(req, res) {
       const qaName = fields.qaName?.[0] || "";
       const qaDate = fields.qaDate?.[0] || "";
 
-      if (!email) {
-        return res.status(400).json({ error: "Email required" });
-      }
+      if (!email) return res.status(400).json({ error: "Email required" });
 
-      // Ambil file tanda tangan
-      const divisionHeadSign = Array.isArray(files.divisionHeadSign)
-        ? files.divisionHeadSign[0]
-        : files.divisionHeadSign;
-      const userSign = Array.isArray(files.userSign)
-        ? files.userSign[0]
-        : files.userSign;
-      const qaSign = Array.isArray(files.qaSign)
-        ? files.qaSign[0]
-        : files.qaSign;
+      // TANDA TANGAN
+      const getFile = (f) => (Array.isArray(f) ? f[0] : f);
+      const divisionHeadSign = getFile(files.divisionHeadSign);
+      const userSign = getFile(files.userSign);
+      const qaSign = getFile(files.qaSign);
 
-      // Buka template PDF
+      // BUKA TEMPLATE PDF
       const templatePath =
         process.env.PDF_TEMPLATE ||
         path.join(process.cwd(), "template", "Form-GMF-Q-063M-template.pdf");
@@ -89,7 +77,7 @@ export default async function handler(req, res) {
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const formPdf = pdfDoc.getForm();
 
-      // Isi field di PDF
+      // ISI FIELD
       formPdf.getTextField("name").setText(name);
       formPdf.getTextField("id").setText(id);
       formPdf.getTextField("unit").setText(unit);
@@ -102,17 +90,13 @@ export default async function handler(req, res) {
       formPdf.getTextField("qaName")?.setText(qaName);
       formPdf.getTextField("qaDate")?.setText(qaDate);
 
-      // Tambah gambar tanda tangan
+      // TAMBAH GAMBAR TANDA TANGAN
       async function embedImage(pdfDoc, filePath) {
         const imgBytes = fs.readFileSync(filePath);
         const ext = path.extname(filePath).toLowerCase();
-        if (ext === ".png") {
-          return await pdfDoc.embedPng(imgBytes);
-        } else if (ext === ".jpg" || ext === ".jpeg") {
-          return await pdfDoc.embedJpg(imgBytes);
-        } else {
-          throw new Error("File tanda tangan harus PNG atau JPG");
-        }
+        if (ext === ".png") return pdfDoc.embedPng(imgBytes);
+        if (ext === ".jpg" || ext === ".jpeg") return pdfDoc.embedJpg(imgBytes);
+        throw new Error("File tanda tangan harus PNG atau JPG");
       }
 
       const signFields = [
@@ -128,12 +112,12 @@ export default async function handler(req, res) {
             const pdfField = formPdf.getButton(field);
             pdfField.setImage(sigImg);
           } catch (e) {
-            console.warn(`⚠️ Error pada tanda tangan ${field}:`, e.message);
+            console.warn(`⚠️ Error tanda tangan ${field}:`, e.message);
           }
         }
       }
 
-      // Checkbox mapping
+      // CHECKBOX MAPPING
       const checkboxMapping = {
         "initial-stamp": "CheckBox1",
         "initial-coc": "CheckBox2",
@@ -155,7 +139,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // Simpan hasil PDF
+      // SIMPAN PDF
       formPdf.flatten();
       const pdfBytes = await pdfDoc.save();
       const outName = `GMF-Form-Q-063M-${name.replace(
@@ -165,7 +149,7 @@ export default async function handler(req, res) {
       const outPath = path.join(os.tmpdir(), outName);
       fs.writeFileSync(outPath, pdfBytes);
 
-      // Kirim email
+      // KIRIM EMAIL (SMTP)
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT) || 587,
@@ -178,13 +162,11 @@ export default async function handler(req, res) {
 
       const attachments = [{ filename: outName, path: outPath }];
       ["license", "cv", "authLetter"].forEach((k) => {
-        const f = files[k];
-        const fileObj = Array.isArray(f) ? f[0] : f;
-        if (fileObj?.filepath) {
+        const f = getFile(files[k]);
+        if (f?.filepath) {
           attachments.push({
-            filename:
-              fileObj.originalFilename || path.basename(fileObj.filepath),
-            path: fileObj.filepath,
+            filename: f.originalFilename || path.basename(f.filepath),
+            path: f.filepath,
           });
         }
       });
@@ -205,6 +187,7 @@ export default async function handler(req, res) {
       });
     } catch (err) {
       console.error("❌ Processing error:", err);
+      console.error("❌ Full Error Stack:", err.stack);
       return res.status(500).json({ error: String(err) });
     }
   });

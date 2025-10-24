@@ -1,22 +1,28 @@
-// IMPORT & SETUP
-import nodemailer from "nodemailer";
-import fs from "fs";
-import path from "path";
-import os from "os";
-import { PDFDocument, StandardFonts } from "pdf-lib";
-import formidable from "formidable";
-import dotenv from "dotenv";
-import { fileURLToPath } from "url";
-import brevoPackage from "@getbrevo/brevo";
+// IMPORT & SETUP (pakai CommonJS)
+const nodemailer = require("nodemailer");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const { PDFDocument } = require("pdf-lib");
+const formidable = require("formidable");
+const dotenv = require("dotenv");
+const brevo = require("@getbrevo/brevo");
 
-const brevo = brevoPackage;
-brevo.setApiKey(process.env.BREVO_API_KEY);
-
+// Load environment variables
 dotenv.config();
+
+// Set API Key Brevo
+if (process.env.BREVO_API_KEY) {
+  brevo.setApiKey(process.env.BREVO_API_KEY);
+} else {
+  console.warn("⚠️ BREVO_API_KEY tidak ditemukan di environment!");
+}
+
+// LOG ENVIRONMENT
 console.log("ENV SMTP HOST:", process.env.SMTP_HOST);
 
-// HANDLER MULAI
-export default async function handler(req, res) {
+// HANDLER API UTAMA
+module.exports = async (req, res) => {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -32,7 +38,7 @@ export default async function handler(req, res) {
     try {
       console.log("✅ Form parsed successfully:", fields);
 
-      // AMBIL SEMUA FIELD DARI FORM HTML
+      // Ambil semua field dari form
       const requestChoice = fields.requestChoice?.[0] || "";
       const name = fields.name?.[0] || "";
       const id = fields.id?.[0] || "";
@@ -41,7 +47,6 @@ export default async function handler(req, res) {
       const additionalInfo = fields.additionalInfo?.[0] || "";
       const email = fields.email?.[0] || "";
 
-      // Tambahan field baru (Division Head, User, QA)
       const divisionHeadName = fields.divisionHeadName?.[0] || "";
       const divisionHeadDate = fields.divisionHeadDate?.[0] || "";
       const userName = fields.userName?.[0] || "";
@@ -53,106 +58,76 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Email required" });
       }
 
-      // AMBIL SEMUA FILE (LICENSE, CV, TTD, DLL)
-      const divisionHeadSign = files.divisionHeadSign
-        ? Array.isArray(files.divisionHeadSign)
-          ? files.divisionHeadSign[0]
-          : files.divisionHeadSign
-        : null;
-      const userSign = files.userSign
-        ? Array.isArray(files.userSign)
-          ? files.userSign[0]
-          : files.userSign
-        : null;
-      const qaSign = files.qaSign
-        ? Array.isArray(files.qaSign)
-          ? files.qaSign[0]
-          : files.qaSign
-        : null;
+      // Ambil file tanda tangan
+      const divisionHeadSign = Array.isArray(files.divisionHeadSign)
+        ? files.divisionHeadSign[0]
+        : files.divisionHeadSign;
+      const userSign = Array.isArray(files.userSign)
+        ? files.userSign[0]
+        : files.userSign;
+      const qaSign = Array.isArray(files.qaSign)
+        ? files.qaSign[0]
+        : files.qaSign;
 
-      // BUKA TEMPLATE PDF
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
+      // Buka template PDF
       const templatePath =
         process.env.PDF_TEMPLATE ||
-        path.join(__dirname, "..", "template", "Form-GMF-Q-063M-template.pdf");
+        path.join(process.cwd(), "template", "Form-GMF-Q-063M-template.pdf");
 
       if (!fs.existsSync(templatePath)) {
-        console.error("Template PDF not found at", templatePath);
+        console.error("❌ Template PDF not found at", templatePath);
         return res.status(500).json({ error: "Template PDF not found" });
       }
 
       const existingPdfBytes = fs.readFileSync(templatePath);
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
-      const form = pdfDoc.getForm();
-      const page = pdfDoc.getPages()[0];
+      const formPdf = pdfDoc.getForm();
 
-      // ISI FIELD TEXT DI PDF
-      form.getTextField("name").setText(name);
-      form.getTextField("id").setText(id);
-      form.getTextField("unit").setText(unit);
-      form.getTextField("jobTitle").setText(jobTitle);
-      form.getTextField("additionalInfo").setText(additionalInfo || "-");
+      // Isi field di PDF
+      formPdf.getTextField("name").setText(name);
+      formPdf.getTextField("id").setText(id);
+      formPdf.getTextField("unit").setText(unit);
+      formPdf.getTextField("jobTitle").setText(jobTitle);
+      formPdf.getTextField("additionalInfo").setText(additionalInfo || "-");
+      formPdf.getTextField("divisionHeadName")?.setText(divisionHeadName);
+      formPdf.getTextField("divisionHeadDate")?.setText(divisionHeadDate);
+      formPdf.getTextField("userName")?.setText(userName);
+      formPdf.getTextField("userDate")?.setText(userDate);
+      formPdf.getTextField("qaName")?.setText(qaName);
+      formPdf.getTextField("qaDate")?.setText(qaDate);
 
-      form.getTextField("divisionHeadName")?.setText(divisionHeadName);
-      form.getTextField("divisionHeadDate")?.setText(divisionHeadDate);
-      form.getTextField("userName")?.setText(userName);
-      form.getTextField("userDate")?.setText(userDate);
-      form.getTextField("qaName")?.setText(qaName);
-      form.getTextField("qaDate")?.setText(qaDate);
-
-      // TAMBAHKAN GAMBAR (TANDA TANGAN)
+      // Tambah gambar tanda tangan
       async function embedImage(pdfDoc, filePath) {
         const imgBytes = fs.readFileSync(filePath);
         const ext = path.extname(filePath).toLowerCase();
-
         if (ext === ".png") {
           return await pdfDoc.embedPng(imgBytes);
         } else if (ext === ".jpg" || ext === ".jpeg") {
           return await pdfDoc.embedJpg(imgBytes);
         } else {
-          throw new Error(
-            "File tanda tangan harus berupa PNG, JPG, atau JPEG."
-          );
+          throw new Error("File tanda tangan harus PNG atau JPG");
         }
       }
 
-      // Division Head signature
-      if (divisionHeadSign?.filepath) {
-        try {
-          const sigImg = await embedImage(pdfDoc, divisionHeadSign.filepath);
-          const field = form.getButton("divisionHeadSign");
-          field.setImage(sigImg);
-        } catch (err) {
-          console.error("❌ Error division head sign:", err.message);
+      const signFields = [
+        { field: "divisionHeadSign", file: divisionHeadSign },
+        { field: "userSign", file: userSign },
+        { field: "qaSign", file: qaSign },
+      ];
+
+      for (const { field, file } of signFields) {
+        if (file?.filepath) {
+          try {
+            const sigImg = await embedImage(pdfDoc, file.filepath);
+            const pdfField = formPdf.getButton(field);
+            pdfField.setImage(sigImg);
+          } catch (e) {
+            console.warn(`⚠️ Error pada tanda tangan ${field}:`, e.message);
+          }
         }
       }
 
-      // User signature
-      if (userSign?.filepath) {
-        try {
-          const sigImg = await embedImage(pdfDoc, userSign.filepath);
-          const field = form.getButton("userSign");
-          field.setImage(sigImg);
-        } catch (err) {
-          console.error("❌ Error user sign:", err.message);
-        }
-      }
-
-      // QA signature
-      if (qaSign?.filepath) {
-        try {
-          const sigImg = await embedImage(pdfDoc, qaSign.filepath);
-          const field = form.getButton("qaSign");
-          field.setImage(sigImg);
-        } catch (err) {
-          console.error("❌ Error QA sign:", err.message);
-        }
-      }
-
-      // CENTANG CHECKBOX
-      // Mapping antara pilihan request dan nama field checkbox di PDF
-      // CENTANG CHECKBOX / RADIO GROUP
+      // Checkbox mapping
       const checkboxMapping = {
         "initial-stamp": "CheckBox1",
         "initial-coc": "CheckBox2",
@@ -163,42 +138,32 @@ export default async function handler(req, res) {
       const checkboxFieldName = checkboxMapping[requestChoice];
       if (checkboxFieldName) {
         try {
-          // Coba ambil grup bernama "Request"
-          const group = form.getRadioGroup("Request");
+          const group = formPdf.getRadioGroup("Request");
           group.select(checkboxFieldName);
-          console.log(`✅ Selected ${checkboxFieldName} in group "Request"`);
-        } catch (err1) {
+        } catch {
           try {
-            // Jika bukan grup, fallback ke checkbox individu
-            const checkbox = form.getCheckBox(checkboxFieldName);
-            checkbox.check();
-            console.log(`✅ Checked ${checkboxFieldName} individually`);
-          } catch (err2) {
-            console.log(
-              "⚠️ Checkbox/Radio field not found:",
-              checkboxFieldName
-            );
+            formPdf.getCheckBox(checkboxFieldName).check();
+          } catch {
+            console.warn("⚠️ Checkbox tidak ditemukan:", checkboxFieldName);
           }
         }
-      } else {
-        console.log("⚠️ No mapping for requestChoice:", requestChoice);
       }
 
-      // SIMPAN PDF HASIL
-      form.flatten(); // kunci field
+      // Simpan hasil PDF
+      formPdf.flatten();
       const pdfBytes = await pdfDoc.save();
-      const outName = `GMF-Form-Q-063M-${(name || "no-name").replace(
+      const outName = `GMF-Form-Q-063M-${name.replace(
         /\s+/g,
         "_"
       )}-${Date.now()}.pdf`;
       const outPath = path.join(os.tmpdir(), outName);
       fs.writeFileSync(outPath, pdfBytes);
 
-      // KIRIM EMAIL
+      // Kirim email
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
-        secure: process.env.SMTP_SECURE === "true", // false untuk STARTTLS
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === "true",
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
@@ -206,12 +171,10 @@ export default async function handler(req, res) {
       });
 
       const attachments = [{ filename: outName, path: outPath }];
-
-      // Tambahkan semua file ke attachment
       ["license", "cv", "authLetter"].forEach((k) => {
         const f = files[k];
         const fileObj = Array.isArray(f) ? f[0] : f;
-        if (fileObj && fileObj.filepath) {
+        if (fileObj?.filepath) {
           attachments.push({
             filename:
               fileObj.originalFilename || path.basename(fileObj.filepath),
@@ -221,11 +184,10 @@ export default async function handler(req, res) {
       });
 
       await transporter.sendMail({
-        from: '"GMF AeroAsia" <hafizhmff@gmail.com>',
+        from: `"GMF AeroAsia" <${process.env.SMTP_USER}>`,
         to: email,
-        replyTo: process.env.SMTP_USER,
         subject: `Your GMF Q-063M Submission - ${name}`,
-        text: `Dear ${name},\n\nThank you for submitting!\n\nRegards,\nGMF AeroAsia`,
+        text: `Dear ${name},\n\nThank you for submitting your form.\n\nRegards,\nGMF AeroAsia`,
         attachments,
       });
 
@@ -240,4 +202,4 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: String(err) });
     }
   });
-}
+};

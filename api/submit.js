@@ -7,6 +7,10 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import formidable from "formidable";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
+import brevoPackage from "@getbrevo/brevo";
+
+const brevo = brevoPackage;
+brevo.setApiKey(process.env.BREVO_API_KEY);
 
 dotenv.config();
 console.log("ENV SMTP HOST:", process.env.SMTP_HOST);

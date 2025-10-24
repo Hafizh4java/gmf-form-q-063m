@@ -172,7 +172,7 @@ export default async function handler(req, res) {
       });
 
       await transporter.sendMail({
-        from: `"GMF AeroAsia" <${process.env.SMTP_USER}>`,
+        from: `"GMF Form Q063M" <no-reply@brevo.com>`,
         to: email,
         subject: `Your GMF Q-063M Submission - ${name}`,
         text: `Dear ${name},\n\nThank you for submitting your form.\n\nRegards,\nGMF AeroAsia`,

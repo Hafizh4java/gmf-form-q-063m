@@ -326,25 +326,70 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
       const form = document.getElementById("gmfForm");
 
-      form.addEventListener("submit", function (event) {
-        event.preventDefault(); // tahan dulu submit
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-        Swal.fire({
+        // 🔹 Konfirmasi sebelum kirim
+        const confirm = await Swal.fire({
           title: "Apakah semua dokumen sudah benar?",
           text: "Pastikan semua file dan data sudah lengkap sebelum dikirim.",
           icon: "question",
           showCancelButton: true,
+          confirmButtonColor: "#2563eb",
+          cancelButtonColor: "#6b7280",
           confirmButtonText: "Ya, kirim",
           cancelButtonText: "Cek lagi",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            form.submit(); // kirim form kalau user klik "Ya, kirim"
-          }
         });
+
+        if (!confirm.isConfirmed) return;
+
+        // 🔹 Tampilkan loading saat proses upload & kirim email
+        Swal.fire({
+          title: "Mengirim Form...",
+          text: "Mohon tunggu sebentar, sistem sedang memproses data Anda.",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        // 🔹 Kirim data ke server (tanpa reload)
+        try {
+          const formData = new FormData(form);
+          const response = await fetch("/api/submit", {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.ok) {
+            Swal.fire({
+              icon: "success",
+              title: "Berhasil Dikirim!",
+              text: "Form berhasil diproses. PDF hasilnya telah dikirim ke email Anda.",
+              confirmButtonColor: "#2563eb",
+            });
+            form.reset();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Gagal Mengirim",
+              text: result.error || "Terjadi kesalahan saat mengirim form.",
+              confirmButtonColor: "#2563eb",
+            });
+          }
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "Terjadi Kesalahan",
+            text: error.message || "Tidak dapat terhubung ke server.",
+            confirmButtonColor: "#2563eb",
+          });
+        }
       });
     </script>
 
